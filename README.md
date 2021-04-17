@@ -693,3 +693,159 @@ function isLikeSky(type: any) type is ISky {
 }
 ```
 *`any` is the less restricted type, vs `unknown` is the most restricted type.
+
+# Conditional Types
+
+By passing the generic T we can tell the compiler to analize a ternary expression
+ ```javascript
+ interface StringContainer {
+  value: string;
+  format(): string;
+  split(): string[];
+}
+
+interface NumberContainer {
+  value: number;
+  round();
+}
+ 
+ type Item<T> = {
+  id: T,
+  container: T extends string ? StringContainer : NumberContainer;
+ }
+```
+
+Now if we create an item, depending on the type, intellisense will figure it out the type correctly
+```javascript
+let item: Item<string> = {
+  id: 'myid',
+  container: null
+}
+```
+
+Another example
+```javascript
+interface Book {
+  id: string;
+  tableOfContents: string[]l
+}
+
+interface Tv {
+  id: number;
+  diagonal: number;
+}
+
+interface IItemService {
+  getItem<T>(id: T): T extends string ? Book : Tv;
+}
+
+let itemService: IItemServicel;
+const book = itemService.getItem("10") // Since the id is a string, it will use the Book interface
+const tv = itemService.getItem(10) // Since the id is a number, it will use the tv interface
+```
+
+Now, there is one more catch with this solution, and it is that you are able to do
+```javascript
+const tv = itemService.getItem(true); // Typescript will allow this to happen
+```
+
+We know that we only support strings or numbers for the id, that's why we need to lock in the generic
+```javascript
+interface IItemService {
+  getItem<T extends string | number>(id: T): T extends string ? Book : Tv;
+}
+```
+
+Now if you try to use a boolean parameter for the id, typescript will complain.
+
+# Reusable flatten type
+
+```javascript
+const numbers = [2, 1]
+
+const someObj = {
+  id: '23',
+  name: 'Doe'
+}
+
+const someBoolean = true;
+```
+
+If we like to find what the type of the value in the array is we can create a type:
+```javascript
+type FlattenArray<T extends number>: T[number]
+
+type NumberArrayFlattened = FlattenArray<typeof numbers>;
+```
+We use number because the indexes of all arrays are numbers, so it will return the matching type for the value.
+
+For the object we will do something like
+```javascript
+type FlattenObject<T extends object>: T[keyof T];
+
+type ObjectFlattened = FlattenObject<typeof someObj>;
+```
+Since it is an object, keyof will return all the keys of T --> "id" | "name"
+And hence someObj has id as number, and name as a string, the FlattenObject will say that the returned types are `string | number`
+
+Problem with this is that we are again creating different types for each case, instead we can use conditional types to create a reusable interface
+```javascript
+types Flatten<T>: T extends any[] ? T[number] :
+  T extends object ? T[keyof T] : 
+  T;
+```
+
+Since we have built a generic and reusable interface we can now use it
+```javascript
+type NumberArrayFlattened = Flatten<typeof numbers>;
+type ObjectFlattene d = Flatten<typeof someObj>;
+type BooleanFlattened = Flatten<typeof someBoolean>;
+```
+# Infer
+
+Will allow typescript to figure the type based on the content.
+
+Typescript is very powerfull, you don't need to define the return type for all of the functions, cause typescript will know.
+```javascript
+function generateId(num: number) {
+  return 5 + num;
+}
+
+const n: number = generateId(5); // This will work since typescript will infer the return type.
+const s: string = generateId(5); // Here compilation will fail 
+```
+
+If the we don't really know the type of the id that's gonna be returned, cause it can be either a string or a number or something else,
+we will like to  link both the lookup function with the generateId
+```javascript
+function lookup(id: string) { // won't work
+  // to stuff
+}
+```
+
+To fix this, we can create a return type as follows
+```javascript
+type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any
+```
+When using conditional types you also get access to the infer keyword, so  
+if T is a function with any number of arguments, infer it's return type and store into R, and then return R or T doesn't extend the function just return any as a placeholder.
+
+Now we can create the Id type that matches the corresponding return value of generateId
+```javascript
+type Id = ReturnType<typeof generateId>
+```
+
+and now, we can link it to the lookup function 
+```javascript
+function lookup(id: Id) { ... }
+```
+*You don't need to implement the [ReturnType](https://www.typescriptlang.org/docs/handbook/utility-types.html#returntypetype), it is already in typescript 2.8+. 
+
+
+For example
+```javascript
+type UnpackPromise<T> = T extends Promise<infer K>[] ? K : any; // extract the type of the result of the array of promises
+const arr = [Promise.resolve(true)]
+
+type ExpectedBooelan = UnpackPromise<typeof arr>;
+```
