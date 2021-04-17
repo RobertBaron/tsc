@@ -647,4 +647,49 @@ for(let action of backwardsActionList) {
 ```
 The iterator and Iterable protocols are part of the JS spec, you can find more info [here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols)
 
+# Unknown types
 
+```javascript
+const colors = ['yellow', 'blue', 'black', 'white'];
+
+colors.indexOf('blue'); // valid
+colors() // invalid
+colors.a.b.c // invalid
+```
+
+In the previous example, typescript infers the type of `colors` based on the initialization values that we provide, so that typescript knows
+that all color is an `array` of `string`.
+
+But, if we specify colors as any, now all the incorrect ones are now valid.
+```javascript
+const colors: any = ['yellow', 'blue', 'black', 'white'];
+
+colors.indexOf('blue'); // valid
+colors() // valid
+colors.a.b.c // valid
+```
+*Even though there are valid use cases for `any`, for most of the time it is not, it will get you in trouble.
+
+A better aproach is to use the keyword `unknown` which will tell the developer that it is really not safe to access without proper previous checking
+```javascript
+
+interface ISky {
+  message: string;
+}
+
+const colors: unknown;
+
+if (typeof colors === 'string') {
+  console.log(colors.toUpperCase()); // now it is safe, cause we are checking for the type
+}
+
+if (isLikeSky(colors)) {
+  console.log(colors.message)
+}
+
+// Custom define type guard check.
+function isLikeSky(type: any) type is ISky {
+  return (<ISky>type).message !== undefined
+}
+```
+*`any` is the less restricted type, vs `unknown` is the most restricted type.
