@@ -158,7 +158,7 @@ Now how can we figure it out if user is an admin or a user? You guess it, typesc
 ```
 
 We can also create a custom type guard and typescript will imply the type correctly in the `redirect` function
-```
+```javascript
 function isAdmin(usr: Admin | User): usr is Admin {
   return (<Admin>usr).role !== undefined;
 }
@@ -175,7 +175,7 @@ function isAdmin(usr: Admin | User): usr is Admin {
 The problem with this solution is that you are going to be adding to much extra code everytime you need to tell typescript to figure the type correctly.
 
 There is a better way, the [in](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/in) operator. 
-```
+```javascript
  function redirect(usr: Admin | User) {
   if ("role" in usr) { // checks if the property role exists IN usr, since it only exists for Admin, typescript will infer correctly that it is an Admin.
     routeAdmin(usr.role); 
@@ -447,5 +447,93 @@ type ReadonlyPet = {
 ```
 This can be read as we are adding (+) a readonly flag and removing (-) optional properties.
 
-#
+# Types vs interfaces
 
+## Types
+
+Are used to alias a more complex type, like a union of other types to a reusable name
+
+## Interfaces
+
+More used as object oriented programming where you use the interface for a contact of the object you try to implement.
+
+Even though types and interfaces they kind of behave the same way, for example 
+```javascript
+interface IAnimal {
+  age: number;
+  eat(): void;
+  speak(): string;
+}
+```
+is the equivalent of 
+```javascript
+type AnimalTypeAlias = {
+  age: number;
+  eat(): void;
+  speak(): string;
+}
+```
+
+it is even possible to assign one to the other, since typescript uses structural checks.
+```javascript
+ let animalInterface: IAnimal;
+ let animalTypeAlias: AnimalTypeAlias;
+ 
+ animalInterface = AnimalTypeAlias; // typescript will not complain as long as they have the same structure.
+ ```
+ 
+ With type aliases we can express a merge of interfaces by intersecting them
+ ```javascript
+ type Cat = IPet & IFeline; // cat is both a pet and a feline.
+ ```
+ 
+ If you will like to do the same with an interface, even though it is possible, you will have to create a totally new interface for it
+ ```javascript
+ interface ICat extends IPet, IFeline {}
+ ```
+ *Functionally, types and interfaces are kind of the same, so far the differences are more lexical.
+ 
+ Interfaces can also extend types
+ ```javascript
+ type Pet = {
+  pose(): void;
+ }
+ 
+ interface IFeline {
+  nightvision: boolean;
+ }
+ 
+ interface ICat extends IFeline, Pet {}
+```
+Classes can also implement both
+```javascript
+class HouseCat implements IFeline, Pet {}
+```
+
+Something you cannot do is to extend or implement union types, this is because for interfaces or classes, you are creating a contract that's lock down into it, 
+it cannot be one thing or the other
+```javascript
+type PetType = IDog | ICat;
+
+interface IPet extends PetType {} // Error
+class Pet implements PetType {} // Error
+```
+
+If you have 2 interfaces with the same name they get merged
+```javascript
+interface Foo {
+  a: string;
+}
+
+interface Foo {
+  b: string;
+}
+
+let foo: Foo;
+foo.a // works
+foo.b // works
+```
+
+This is not possible with types, you can't have 2 or more separate definitions of a type of name X.
+
+*Merging interfaces is very important when you extend dependencies, this way you can add your own code into existing libraries.
