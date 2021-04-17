@@ -537,3 +537,114 @@ foo.b // works
 This is not possible with types, you can't have 2 or more separate definitions of a type of name X.
 
 *Merging interfaces is very important when you extend dependencies, this way you can add your own code into existing libraries.
+
+# Self-referencing type aliases & Iterators
+
+In typescript we declare types that reference themselves 
+```javascript
+interface TreeNode<T> {
+  value: T;
+  left: TreeNode<T>;
+  right: TreeNode<T>;
+}
+
+interface LinkedListNode<T> {
+  value: T;
+  next: LinkedListNode<T>;
+}
+
+let node: LinkedListNode<string>;
+node.next.next.next.next.next.value;
+```
+
+In redux, you can time travel through your execution, if we would like to do something like this, we can do it by implementing a linked list.
+
+```javascript
+interface Action {
+  type: string;
+}
+
+interface ListNode<T> {
+  value: T;
+  next: ListNode<T>;
+  prev: ListNode<T>;
+}
+
+let action: { type: "LOGIN" }
+let actioN2: { type: "LOAD" }
+
+let actionNode1: ListNode<Action> = {
+  value: action1,
+  next: null,
+  prev: null
+}
+
+let actionNode2: ListNode<Action> = {
+  value: action2,
+  next: null,
+  prev: actionNode1
+}
+
+actionNode2.prev = actionNode2;
+```
+
+Since the interface allows us to do this:
+```javascript
+actionNode1.next.next.next.next.value; // Not safe, of course.
+```
+
+We might have some unexpected behavior in our app, in order to traverse the list we can have a null check on the current node and stop when it is null:
+```javascript
+// Go backwards
+let currentNode = actionNode2;
+
+do {
+  console.log(currentNode.value);
+  currentNode = currentNode.prev;
+} while(currentNode);
+
+// Go forward
+let currentNode = actionNode1;
+
+do {
+  console.log(currentNode.value);
+  currentNode = currentNode.next;
+} while(currentNode);
+```
+
+As you might notice, this is messy, cause it leaves the responsability to the developer to do all the validations for prev and next nodes,
+we can abstract all of this implementation by using iterators.
+
+```javascript
+class BackwardsActionIterator implements IterableIterator<Action> {
+  constructor(private _currentActionNode: ListNode<Action> {
+
+  }
+  // Required method for Iterable
+  [Symbol.iterator](): IterableIterator<Action> {
+    return this;
+  }
+  
+  // Require for Iterator
+  next(): IteratorResult<Action> {
+     const curr = this._currentActionNode;
+     if (!curr?.value) {
+      return { value: null, done: true }; // Required by the protocol to specify that you have reach the end of the iterations.
+     }
+     
+     this._currentActionNode = curr.prev;
+     return { value: curr.value, done: false };
+  }
+}
+
+const backwardsActionList = new BackwardsActionIterator(actionNode2);
+
+// Here we just have an abstract way to loop through our list, now the dev doesn't have to
+// worry about how to traverse the linked list, to check for null values, or to go next or prev.
+for(let action of backwardsActionList) {
+  console.log(action.type);
+}
+```
+The iterator and Iterable protocols are part of the JS spec, you can find more info [here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols)
+
+
