@@ -849,3 +849,65 @@ const arr = [Promise.resolve(true)]
 
 type ExpectedBooelan = UnpackPromise<typeof arr>;
 ```
+
+# Optional chaining
+
+## For objects
+```javascript
+type FormattingOptions = {
+  formatting?: {
+    indent?: number
+  }
+}
+
+function format(value: any, options?: FormattingOptions) {
+  const indent = options?.formatting?.indent; 
+  return JSON.stringify(value, null, indent);
+}
+
+const user = { name: 'john' }
+format(user);
+format(user, {});
+format(user, { formatting: {} });
+format(user, { formatting: { indent: 2 } });
+```
+
+## For index-like access
+```javascript
+type FormattingOptions = {
+  formatting?: {
+    "index-line"?: number
+  }
+}
+
+function format(value: any, options?: FormattingOptions) {
+  const indent = options?.formatting?.["index-line"]; 
+  return JSON.stringify(value, null, indent);
+}
+
+const user = { name: 'john' }
+format(user);
+format(user, {});
+format(user, { formatting: {} });
+format(user, { formatting: { "index-line": 2 } });
+```
+
+## For functions
+```javascript
+type FormattingOptions = {
+  formatting?: {
+    getIndent: () => number;
+  }
+}
+
+function format(value: any, options?: FormattingOptions) {
+  const indent = options?.formatting?.getIndent?.(); 
+  return JSON.stringify(value, null, indent);
+}
+
+const user = { name: 'john' }
+format(user);
+format(user, {});
+format(user, { formatting: {} });
+format(user, { formatting: { getIndent: () => 2 } });
+```
