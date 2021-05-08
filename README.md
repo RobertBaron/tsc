@@ -925,3 +925,34 @@ format(user, {});
 format(user, { formatting: {} });
 format(user, { formatting: { getIndent: () => 2 } });
 ```
+
+# Statically type unknown values
+
+If you have a function for a project using TS you can do and be safe when you do stuff like this:
+```javascript
+function range(from: number, to: number): number[] {
+  const values: number[] = [];
+  for(let i = from; i < to; i++) {
+    values.push(i);
+  }
+  return values;
+}
+```
+
+The problem is that if you are creating a library users might not be using JS, and they will not have the right checks,
+this is where the unknown type comes handy
+
+```javascript
+function range(from: unknown, to: unknown): number[] {
+  if (typeof from !== "number" || typeof to !== "number") {
+      throw new Error("range accepts 2 number parameters")
+  }
+  
+  const values: number[] = [];
+  for(let i = from; i < to; i++) {
+    values.push(i);
+  }
+  return values;
+}
+```
+Now we are checking that both are indeed numbers and TS is smart enough to know that after the know they are in fact numbers.
