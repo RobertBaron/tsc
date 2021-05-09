@@ -956,3 +956,19 @@ function range(from: unknown, to: unknown): number[] {
 }
 ```
 Now we are checking that both are indeed numbers and TS is smart enough to know that after the know they are in fact numbers.
+Even though that that works, we have another issue, if you hover over the function both parameters are expected as unknown
+In order to fix that issue for our TS folks we can overload the function with the correct types
+```javascript
+function range(from: number, to: number): number[];
+function range(from: unknown, to: unknown): number[] {
+  if (typeof from !== "number" || typeof to !== "number") {
+      throw new Error("range accepts 2 number parameters")
+  }
+  
+  const values: number[] = [];
+  for(let i = from; i < to; i++) {
+    values.push(i);
+  }
+  return values;
+}
+```
